@@ -1,0 +1,77 @@
+version: '3'
+
+services:
+
+  # Apache PHP 8
+  apache:
+    build:
+      context: .
+      # PHP 8.1
+      dockerfile: DockerContainersConfig/build/apache/php-8.1/Dockerfile
+    container_name: symfonycine_web
+    ports:
+      - '80:80'
+      - '9003:9003'
+    volumes:
+      - './Backend:/var/www/html'
+      - './Backend/var:/var/log'
+      - './Backend/.composer/cache:/var/www/.composer/cache'
+      - './DockerContainersConfig/vhosts:/etc/apache2/sites-enabled'
+    environment:
+      XDEBUG_CONFIG: 'remote_host=host.docker.internal remote_port=9003'
+      PHP_IDE_CONFIG: serverName=Docker
+    depends_on:
+      - db
+    links:
+      - db
+    networks:
+      - -symfonycine
+
+
+  # MariaDB
+  db:
+    image: 'mariadb:10.7'
+    container_name: symfonycine_db
+    ports:
+      - '3306:3306'
+    environment:
+      - MARIADB_ROOT_PASSWORD=root
+      - MARIADB_DATABASE=symfonycine
+      - MARIADB_USER=symfonycine
+      - MARIADB_PASSWORD=symfonycine
+    volumes:
+      - './DockerMariaDB/dbdata:/var/lib/mysql'
+    networks:
+      - -symfonycine
+
+
+  # PHPMyAdmin
+  phpmyadmin:
+    image: phpmyadmin
+    container_name: symfonycine_phpmyadmin
+    restart: always
+    environment:
+      - PMA_HOST=db
+      - PMA_PORT=3306
+      - PMA_USER=symfonycine
+      - PMA_PASSWORD=symfonycine
+    ports:
+      - 8081:80
+    networks:
+      - -symfonycine
+
+
+  # MailHog
+  # mailhog:
+  #   image: mailhog/mailhog
+  #   restart: always
+  #   container_name: symfonycine_mailhog
+  #   ports:
+  #     - '1025:1025'
+  #     - '8025:8025'
+  #   networks:
+  #     - -symfonycine
+
+networks:
+  -symfonycine:
+    driver: bridge
